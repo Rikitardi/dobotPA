@@ -4,7 +4,7 @@ from glob import glob
 from threading import Thread
 import socket
 import select, errno,sys
-
+import requests
 #--------Library Buatan--------#
 from Lib.riset import setport,setsocket
 from Lib.manual_move import manualmove
@@ -44,7 +44,7 @@ global urutan
 #----------Set Koneksi---------#
 def koneksi(setsocket):
     ip = ''
-    port = 5060
+    port = 5061
     setsocket1 = setsocket(ip , port)
     close = setsocket1.close()
     global close
@@ -65,24 +65,71 @@ fstop1 = 0
 fvacum = 0
 fvacum1 = 0
 ftohome = 0
+floop = 0
 speeda = ""
 def sendpose():
     getpose = mainset.run()
+    # print(getpose[1])
     # getpose1 = str(getpose)
-    getpose1 = format('K:%s:%s:%s:%s:%s:%s:%s:%s' % (getpose[1],getpose[2],getpose[3],getpose[4],getpose[5],getpose[6],getpose[7],getpose[8]))
+    r = requests.get('http://192.168.43.82/webPA/API_pa.php?x='+str(getpose[6])+'&y='+str(getpose[5])+'&z='+str(getpose[7])+'&r='+str(getpose[8])+'&f=1')
+    getpose1 = format('K:%s:%s:%s:%s:%s:%s:%s:%s:of:' % (getpose[5],getpose[6],getpose[7],getpose[8],getpose[1],getpose[2],getpose[3],getpose[4]))
     getpose2 = getpose1.encode()
     conn.sendall(getpose2)
     return getpose
+def henti(i,j,fvacum,fstop,fpause):
+    while True:
+        try:
+            rdy_read, rdy_write, sock_err = select.select([conn,], [conn], [])
+        except select.error:
+            return 1
+        if len(rdy_read) > 0:
+            pause = conn.recv(8)
+            pause_d = pause.decode()
+            fungsi = mmove.fungsi(pause_d)
+            print("terus aja sampai modar")
+            if fungsi == "PAUSE":
+                fpause = 1
+                mainset.force()    
+                print("ini pause")       
+                break
+            if fungsi == "STOP":
+                print("keadaan : stop di tekan")
+                fstop = 1
+                mainset.force()
+                break
+        pose1 = sendpose()
+        if pose1[5] == str(temp_x[i]) and pose1[6] == str(temp_y[i]) and pose1[7] == str(temp_z[i]) and pose1[8] == str(temp_r[i]): 
+            break    
+    if fpause == 1:
+        listhenti = [fpause, i, fstop, fvacum, j, 1]
+        print(listhenti[0])
+        print(listhenti[1])
+        print(listhenti[2])
+        print(listhenti[3])
+        print(listhenti[4])
+        print(listhenti[5])
+        print("keadaan : fpause aktive")
+        return listhenti
+    if fstop == 1:
+        print("keadaan : fstop aktive")
+        listhenti = [fpause, i, fstop, fvacum, j, 1]
+        return listhenti 
+    listbangsat = [0,0,0,0,0,0]
+    # print("diujung henti")
+    return listbangsat
+
 def main():
     stop = False
     flag = False
     teach = False
     sisa = 0
     jejak = 0
+    floop = 0
     global fpause1
     global fpause2
     global fstop1
     global fvacum1
+    global floop
     global speeda
     while not stop:
         if conn:
@@ -107,8 +154,10 @@ def main():
                         data5 = data3
                         global data5
                         flag = True
-                    if data4 == "0":
+                        print(flag)
+                    elif data4 == "0":
                         flag = False
+                        print(flag)
                 if data3 == "Von" or data3 == "Vof":
                         data5 = data3
                         global data5
@@ -120,30 +169,37 @@ def main():
                 elif teach == True:
                     print(fpause1)
                     fungsi = mmove.fungsi(data2)
-                    print('ini : {}'.format(fungsi))
+                    if data2.find("STR") != -1:
+                        pengulangan = fungsi[1]
+                        speeda = fungsi[2]
+                        fungsi = fungsi[0]
+                        global speeda
                     if fungsi == "BATAL":
                         deletedata()
                         teach = False
                         print("data di delete")
-                    if fungsi == "START":
+                    if fungsi == "STR":
                         if fpause2 == 0:
                             if fpause1 == 1:
                                 mainset.start()
-                                fhenti = runauto(sisa)
+                                fhenti = runauto(sisa, floop, int(pengulangan))
                                 fpause1 = fhenti[0]
                                 sisa =  fhenti[1]
                                 fstop1 = fhenti[2]
-                                fvacum1 = fhenti[3]                            
+                                fvacum1 = fhenti[3]
+                                floop = fhenti[4]                            
                                 if fstop1 == 0:
                                     fpause2 = 0
                                 elif fstop == 1:
                                     fpause2 = 1
                             elif fpause1 == 0:
-                                fhenti = runauto(sisa)
+                                fhenti = runauto(sisa, floop, int(pengulangan))
+                                print(fhenti)
                                 fpause1 = fhenti[0]
                                 sisa = fhenti[1]
                                 fstop1 = fhenti[2]
                                 fvacum1 = fhenti[3]
+                                floop = fhenti[4]
                                 if fstop1 == 0:
                                     fpause2 = 0
                                 elif fstop1 == 1:
@@ -163,9 +219,8 @@ def main():
                                 pass
                     if fungsi == "RECORD": 
                         teaching()
-            if flag == True or teach == True:
+            if flag == True:
                 pose = sendpose()
-                global pose
         # else:
         #     print("stop = true")
         #     stop = True
@@ -190,6 +245,7 @@ def deletedata():
     print(temp_r)
     print(urutan)
 def teaching():
+    pose = sendpose()
     joint1 = float(pose[1])
     joint2 = float(pose[2])
     joint3 = float(pose[3])
@@ -218,62 +274,62 @@ def teaching():
     print(str(temp_z))
     print(str(temp_r))
     print(str(urutan))
-def runauto(sisa):
-    for i in range(sisa, len(urutan)):
-        global urutanp
-        global fvacum
-        p = len(urutan) - 1
-        if i == p:
-            global ftohome
-            ftohome = 1
-        urutanp = i
-        if urutan[i] == "Vof":
-            fvacum = 0
-            mmove.move(urutan[i], 1)
-        if urutan[i] == "Von":
-            fvacum = 1
-            mmove.move(urutan[i], 1)
-        else:
-            PTP.SPEED(float(speeda),50)
-            PTP.MOVJ_XYZ(temp_x[i], temp_y[i], temp_z[i], temp_r[i])
-        fpause = 0
-        fstop = 0
-        while True:
-            try:
-                rdy_read, rdy_write, sock_err = select.select([conn,], [conn], [])
-            except select.error:
-                return 1
-            if len(rdy_read) > 0:
-                pause = conn.recv(8)
-                pause_d = pause.decode()
-                fungsi = mmove.fungsi(pause_d)
-                if fungsi == "PAUSE":
-                    fpause = 1
-                    mainset.force()           
-                    break
-                if fungsi == "STOP":
-                    print("keadaan : stop di tekan")
-                    fstop = 1
-                    mainset.force()
-                    break
-            pose1 = sendpose()
-            if pose1[5] == str(temp_x[i]) and pose1[6] == str(temp_y[i]) and pose1[7] == str(temp_z[i]) and pose1[8] == str(temp_r[i]): 
-                break
-        if fpause == 1:
-            listhenti = [fpause, i, fstop, fvacum]
-            return listhenti
-            break
-        if fstop == 1:
-            print("keadaan : fstop aktive")
-            listhenti = [fpause, i, fstop, fvacum]
-            return listhenti
-            break 
+def runauto(sisa,sisaloop,pengulangan):
+    for j in range(sisaloop, pengulangan):
+        print('pengulangan : {}'.format(j))
+        for i in range(sisa, len(urutan)):
+            print('step : {}'.format(i))
+            global urutanp
+            global fvacum
+            print('panjang record: {}'.format(len(urutan)))
+            p = len(urutan)-1
+            print('syarat akhir: {}'.format(p))
+            if i == p:
+                global ftohome
+                ftohome = 1
+            urutanp = i
+            # print('nilai ftohom:{}'.format(ftohome))
 
-    if ftohome == 1:
-        PTP.SPEED(float(speeda),50)
-        PTP.MOVJ_XYZ(temp_x[0], temp_y[0], temp_z[0], temp_r[0])
-        ftohome = 0
-    listhenti = [fpause, 0, fstop, fvacum]
+            # print("nilai ftohome = 0") 
+            if urutan[i] == "Vof":
+                fvacum = 0
+                mmove.move(urutan[i], 1)
+            elif urutan[i] == "Von":
+                fvacum = 1
+                mmove.move(urutan[i], 1)
+            else:
+                print("ada pergerakan")
+                PTP.SPEED(float(speeda),50)
+                PTP.MOVJ_XYZ(temp_x[i], temp_y[i], temp_z[i], temp_r[i])
+                fpause = 0
+                fstop = 0
+                print("disini bukan")
+                nilaihenti = henti(i,j,fvacum,fstop,fpause)
+                print("berhasil")
+                if nilaihenti[5] == 1:
+                    print("oke")
+                    return nilaihenti
+
+            if ftohome == 1:
+                print ("going to home")
+                PTP.SPEED(float(speeda),50)
+                PTP.MOVJ_XYZ(temp_x[0], temp_y[0], temp_z[0], temp_r[0])
+                nilaihenti1 = henti(0,j,fvacum,fstop,fpause)
+                if fpause == 1:
+                    while True:
+                        try:
+                            rdy_read, rdy_write, sock_err = select.select([conn,], [conn], [])
+                        except select.error:
+                            return 1
+                        if len(rdy_read) > 0:
+                            pausehome = conn.recv(8)
+                            phome = pausehome.decode()
+                            if phome.find("STR") != -1:
+                                mainset.start()
+                                break
+                ftohome = 0
+                # print('nilai ftohom:{}'.format(ftohome))
+    listhenti = [nilaihenti1[0], 0, nilaihenti1[2], nilaihenti1[3], 0]
     return listhenti
 
 #------------main------------#

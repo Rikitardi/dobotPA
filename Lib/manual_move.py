@@ -44,7 +44,7 @@ class manualmove():
             return "PAUSE"
             self.JogFunc.idle()            
             print(self.fungsi1)
-        if self.fungsi1.find("START") != -1:
+        if self.fungsi1.find("STR") != -1:
             self.start = self.fungsi1.split()
             return self.start
             print(self.fungsi1)
