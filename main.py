@@ -44,7 +44,7 @@ global urutan
 #----------Set Koneksi---------#
 def koneksi(setsocket):
     ip = ''
-    port = 5061
+    port = 5051
     setsocket1 = setsocket(ip , port)
     close = setsocket1.close()
     global close
@@ -117,8 +117,8 @@ def henti(i,j,fvacum,fstop,fpause):
     listbangsat = [0,0,0,0,0,0]
     # print("diujung henti")
     return listbangsat
-
 def main():
+    print("ini fungsi main")
     stop = False
     flag = False
     teach = False
@@ -315,8 +315,10 @@ def runauto(sisa,sisaloop,pengulangan):
                 PTP.SPEED(float(speeda),50)
                 PTP.MOVJ_XYZ(temp_x[0], temp_y[0], temp_z[0], temp_r[0])
                 nilaihenti1 = henti(0,j,fvacum,fstop,fpause)
-                if fpause == 1:
+                print('keadaan pause ftohome:{} '.format(nilaihenti1[0]))
+                if nilaihenti1[0] == 1:
                     while True:
+                        dongo = 0
                         try:
                             rdy_read, rdy_write, sock_err = select.select([conn,], [conn], [])
                         except select.error:
@@ -324,8 +326,15 @@ def runauto(sisa,sisaloop,pengulangan):
                         if len(rdy_read) > 0:
                             pausehome = conn.recv(8)
                             phome = pausehome.decode()
+                            print(phome)
                             if phome.find("STR") != -1:
                                 mainset.start()
+                                PTP.SPEED(float(speeda),50)
+                                PTP.MOVJ_XYZ(temp_x[0], temp_y[0], temp_z[0], temp_r[0])
+                                dongo = 1
+                        if dongo == 1:
+                            nilaihenti1 = henti(0,j,fvacum,fstop,0)
+                            if nilaihenti1[0] == 0:
                                 break
                 ftohome = 0
                 # print('nilai ftohom:{}'.format(ftohome))
