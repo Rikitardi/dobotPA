@@ -67,17 +67,20 @@ fvacum1 = 0
 ftohome = 0
 floop = 0
 speeda = ""
-def sendpose():
+def sendpose(pvacum,syarat):
     getpose = mainset.run()
-    # print(getpose[1])
-    # getpose1 = str(getpose)
     r = requests.get('http://192.168.43.82/webPA/API_pa.php?x='+str(getpose[6])+'&y='+str(getpose[5])+'&z='+str(getpose[7])+'&r='+str(getpose[8])+'&f=1')
-    getpose1 = format('K:%s:%s:%s:%s:%s:%s:%s:%s:of:' % (getpose[5],getpose[6],getpose[7],getpose[8],getpose[1],getpose[2],getpose[3],getpose[4]))
-    getpose2 = getpose1.encode()
+    if syarat == 1:
+        getpose1 = format('K:%s:%s:%s:%s:%s:%s:%s:%s::vc#%s::' % (getpose[5],getpose[6],getpose[7],getpose[8],getpose[1],getpose[2],getpose[3],getpose[4],pvacum))
+        getpose2 = getpose1.encode()
+    else:
+        getpose1 = format('K:%s:%s:%s:%s:%s:%s:%s:%s::::' % (getpose[5],getpose[6],getpose[7],getpose[8],getpose[1],getpose[2],getpose[3],getpose[4]))
+        getpose2 = getpose1.encode()
     conn.sendall(getpose2)
     return getpose
 def henti(i,j,fvacum,fstop,fpause):
     while True:
+
         try:
             rdy_read, rdy_write, sock_err = select.select([conn,], [conn], [])
         except select.error:
@@ -88,16 +91,18 @@ def henti(i,j,fvacum,fstop,fpause):
             fungsi = mmove.fungsi(pause_d)
             print("terus aja sampai modar")
             if fungsi == "PAUSE":
+                feedback(True)
                 fpause = 1
                 mainset.force()    
                 print("ini pause")       
                 break
             if fungsi == "STOP":
+                feedback(True)
                 print("keadaan : stop di tekan")
                 fstop = 1
                 mainset.force()
                 break
-        pose1 = sendpose()
+        pose1 = sendpose(fvacum,0)
         if pose1[5] == str(temp_x[i]) and pose1[6] == str(temp_y[i]) and pose1[7] == str(temp_z[i]) and pose1[8] == str(temp_r[i]): 
             break    
     if fpause == 1:
@@ -117,6 +122,15 @@ def henti(i,j,fvacum,fstop,fpause):
     listbangsat = [0,0,0,0,0,0]
     # print("diujung henti")
     return listbangsat
+def feedback(kondisi):
+    if kondisi == False:
+        print("play false")
+        fbstr = 'play:false'
+        conn.sendall(fbstr.encode())
+    elif kondisi == True:
+        print("play true")
+        fbstr = 'play:true'
+        conn.sendall(fbstr.encode())
 def main():
     print("ini fungsi main")
     stop = False
@@ -139,7 +153,7 @@ def main():
                 print('Select() failed on socket with {}'.format(client_address))
                 return 1
             if len(rdy_read) > 0:
-                data_recv = conn.recv(16)
+                data_recv = conn.recv(10)
                 data2 = data_recv.decode()
                 print(data2)
                 data3 = data2
@@ -179,6 +193,7 @@ def main():
                         teach = False
                         print("data di delete")
                     if fungsi == "STR":
+                        feedback(False)
                         if fpause2 == 0:
                             if fpause1 == 1:
                                 mainset.start()
@@ -220,10 +235,7 @@ def main():
                     if fungsi == "RECORD": 
                         teaching()
             if flag == True:
-                pose = sendpose()
-        # else:
-        #     print("stop = true")
-        #     stop = True
+                pose = sendpose(1,0)
 def deletedata():
     temp_j1.clear()
     temp_j2.clear()
@@ -245,7 +257,7 @@ def deletedata():
     print(temp_r)
     print(urutan)
 def teaching():
-    pose = sendpose()
+    pose = sendpose(1,0)
     joint1 = float(pose[1])
     joint2 = float(pose[2])
     joint3 = float(pose[3])
@@ -281,41 +293,40 @@ def runauto(sisa,sisaloop,pengulangan):
             print('step : {}'.format(i))
             global urutanp
             global fvacum
-            print('panjang record: {}'.format(len(urutan)))
+            # print('panjang record: {}'.format(len(urutan)))
             p = len(urutan)-1
-            print('syarat akhir: {}'.format(p))
+            # print('syarat akhir: {}'.format(p))
             if i == p:
                 global ftohome
                 ftohome = 1
             urutanp = i
-            # print('nilai ftohom:{}'.format(ftohome))
-
-            # print("nilai ftohome = 0") 
             if urutan[i] == "Vof":
                 fvacum = 0
+                sendpose(fvacum,1)
                 mmove.move(urutan[i], 1)
             elif urutan[i] == "Von":
                 fvacum = 1
+                sendpose(fvacum,1)
                 mmove.move(urutan[i], 1)
             else:
-                print("ada pergerakan")
+                # print("ada pergerakan")
                 PTP.SPEED(float(speeda),50)
                 PTP.MOVJ_XYZ(temp_x[i], temp_y[i], temp_z[i], temp_r[i])
                 fpause = 0
                 fstop = 0
-                print("disini bukan")
+                # print("disini bukan")
                 nilaihenti = henti(i,j,fvacum,fstop,fpause)
-                print("berhasil")
+                # print("berhasil")
                 if nilaihenti[5] == 1:
-                    print("oke")
+                    # print("oke")
                     return nilaihenti
 
             if ftohome == 1:
-                print ("going to home")
+                # print ("going to home")
                 PTP.SPEED(float(speeda),50)
                 PTP.MOVJ_XYZ(temp_x[0], temp_y[0], temp_z[0], temp_r[0])
                 nilaihenti1 = henti(0,j,fvacum,fstop,fpause)
-                print('keadaan pause ftohome:{} '.format(nilaihenti1[0]))
+                # print('keadaan pause ftohome:{} '.format(nilaihenti1[0]))
                 if nilaihenti1[0] == 1:
                     while True:
                         dongo = 0
@@ -328,6 +339,7 @@ def runauto(sisa,sisaloop,pengulangan):
                             phome = pausehome.decode()
                             print(phome)
                             if phome.find("STR") != -1:
+                                feedback(False)
                                 mainset.start()
                                 PTP.SPEED(float(speeda),50)
                                 PTP.MOVJ_XYZ(temp_x[0], temp_y[0], temp_z[0], temp_r[0])
@@ -351,7 +363,7 @@ while True:
     global conn
     print('alamat : {}'.format(client_address))
     tersambung = False
-    sendpose()
+    sendpose(1,0)
     main()
     # jumlah = 0
     # while True:
