@@ -24,10 +24,6 @@ class manualmove():
     def fungsi(self, fungsi1, aktive = 1):        
         self.fungsi1 = fungsi1
         self.aktive = aktive
-        if self.fungsi1.find("REMOVE") != -1:
-            self.remove = self.fungsi1.split()
-            return self.remove
-            print(self.fungsi1)
         if self.fungsi1 == "TEACH" :
             return "TEACH"
             print(self.fungsi1)
@@ -129,6 +125,7 @@ class manualmove():
                 print(data2)
                 print("mati ya bangsat")
             self.Vac.suck(False)
+           
 
 if __name__ == "__main__":
     setport = setport()

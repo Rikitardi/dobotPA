@@ -51,13 +51,17 @@ def koneksi(setsocket):
     sock = setsocket1.socked()
     global sock
 
+
 #-----------Set Port-----------#
+
 setport = setport()
 mainset = setport.mainset()
 jog = setport.jog()
 mport = setport.m_port()
 mmove = manualmove(mport)
 PTP = PTP(mport)
+
+
 #------------fungsi------------#
 fpause1 = 0
 fpause2 = 0
@@ -67,20 +71,39 @@ fvacum1 = 0
 ftohome = 0
 floop = 0
 speeda = ""
+
+def getinput():
+    try:
+        rdy_read, rdy_write, sock_err = select.select([conn,], [conn], [])
+    except select.error:
+        print('Select() failed on socket with {}'.format(client_address))
+        return 1
+    if len(rdy_read) > 0:
+        data_recv = conn.recv(10)
+        data2 = data_recv.decode()
+        return data2
 def sendpose(pvacum,syarat):
-    getpose = mainset.run()
-    r = requests.get('http://192.168.43.82/webPA/API_pa.php?x='+str(getpose[6])+'&y='+str(getpose[5])+'&z='+str(getpose[7])+'&r='+str(getpose[8])+'&f=1')
-    if syarat == 1:
-        getpose1 = format('K:%s:%s:%s:%s:%s:%s:%s:%s::vc#%s::' % (getpose[5],getpose[6],getpose[7],getpose[8],getpose[1],getpose[2],getpose[3],getpose[4],pvacum))
-        getpose2 = getpose1.encode()
-    else:
-        getpose1 = format('K:%s:%s:%s:%s:%s:%s:%s:%s::::' % (getpose[5],getpose[6],getpose[7],getpose[8],getpose[1],getpose[2],getpose[3],getpose[4]))
-        getpose2 = getpose1.encode()
-    conn.sendall(getpose2)
-    return getpose
+    # try:
+        # mainset
+        getpose = dobotkk.run()
+        if getpose == 'ERROR 101' :
+            pesan = 'ERROR 101'
+            return pesan
+        r = requests.get('http://192.168.43.82/webPA/API_pa.php?x='+str(getpose[6])+'&y='+str(getpose[5])+'&z='+str(getpose[7])+'&r='+str(getpose[8])+'&f=1')
+        if syarat == 1:
+            getpose1 = format('K:%s:%s:%s:%s:%s:%s:%s:%s::vc#%s::#' % (getpose[5],getpose[6],getpose[7],getpose[8],getpose[1],getpose[2],getpose[3],getpose[4],pvacum))
+            getpose2 = getpose1.encode()
+        else:
+            getpose1 = format('K:%s:%s:%s:%s:%s:%s:%s:%s::::#' % (getpose[5],getpose[6],getpose[7],getpose[8],getpose[1],getpose[2],getpose[3],getpose[4]))
+            getpose2 = getpose1.encode()
+        conn.sendall(getpose2)
+        return getpose
+    # except:
+        # pass
+        # pesan = 'ERROR 101'
+        # return pesan
 def henti(i,j,fvacum,fstop,fpause):
     while True:
-
         try:
             rdy_read, rdy_write, sock_err = select.select([conn,], [conn], [])
         except select.error:
@@ -103,6 +126,9 @@ def henti(i,j,fvacum,fstop,fpause):
                 mainset.force()
                 break
         pose1 = sendpose(fvacum,0)
+        if pose1 =='ERROR 101':
+            error = 'ERROR 101'
+            return error
         if pose1[5] == str(temp_x[i]) and pose1[6] == str(temp_y[i]) and pose1[7] == str(temp_z[i]) and pose1[8] == str(temp_r[i]): 
             break    
     if fpause == 1:
@@ -132,8 +158,10 @@ def feedback(kondisi):
         fbstr = 'play:true'
         # conn.sendall(fbstr.encode())
 def main():
+    # try:
     print("ini fungsi main")
     stop = False
+    print(stop)
     flag = False
     teach = False
     sisa = 0
@@ -145,6 +173,11 @@ def main():
     global fvacum1
     global floop
     global speeda
+    print("pasti di siniiiii")
+    galat = sendpose(1,0)
+    if galat =='ERROR 101':
+        return 1
+    print("kok gk masuk")
     while not stop:
         if conn:
             try:
@@ -158,6 +191,8 @@ def main():
                 print(data2)
                 data3 = data2
                 mmove.move(data3, 1)
+                print("pls di sini")
+                print(teach)
                 if data3 == "EXIT":
                     print("close")
                     close
@@ -180,24 +215,31 @@ def main():
                     global data5
                     teach = True
                     print(teach)
-                elif teach == True:
+                if teach == True:
                     print(fpause1)
                     fungsi = mmove.fungsi(data2)
+                    print(fungsi)
+                    if data2.find("REMOVE") != -1:
+                        arrayD = fungsi[1]
+                        print(arrayD)
+                        remove(int(arrayD))
                     if data2.find("STR") != -1:
                         pengulangan = fungsi[1]
                         speeda = fungsi[2]
                         fungsi = fungsi[0]
                         global speeda
                     if fungsi == "BATAL":
+                        print("sebelum di hapus")
                         deletedata()
                         teach = False
-                        print("data di delete")
                     if fungsi == "STR":
                         feedback(False)
                         if fpause2 == 0:
                             if fpause1 == 1:
                                 mainset.start()
                                 fhenti = runauto(sisa, floop, int(pengulangan))
+                                if fhenti == 'ERROR 101':
+                                    return 1
                                 fpause1 = fhenti[0]
                                 sisa =  fhenti[1]
                                 fstop1 = fhenti[2]
@@ -209,6 +251,8 @@ def main():
                                     fpause2 = 1
                             elif fpause1 == 0:
                                 fhenti = runauto(sisa, floop, int(pengulangan))
+                                if fhenti == 'ERROR 101':
+                                    return 1                                
                                 print(fhenti)
                                 fpause1 = fhenti[0]
                                 sisa = fhenti[1]
@@ -224,13 +268,38 @@ def main():
                         if fstop1 == 1 and fpause2 == 1:
                             print("masuk stop")
                             if fvacum1 == 0:
-                                mainset.start()
-                                print("keadaan : menuju home")
-                                PTP.SPEED(float(speeda),10)
-                                PTP.MOVJ_XYZ(temp_x[0], temp_y[0], temp_z[0], temp_r[0])
+                                while True:
+                                    try:
+                                        rdy_read, rdy_write, sock_err = select.select([conn,], [conn], [])
+                                    except select.error:
+                                        print('Select() failed on socket with {}'.format(client_address))
+                                        return 1
+                                    if len(rdy_read) > 0:
+                                        print("data masuk")
+                                        data_recv = conn.recv(10)
+                                        data2 = data_recv.decode()
+                                        if data2 == "A_RESET":
+                                            mainset.start()
+                                            print("keadaan : menuju home")
+                                            PTP.SPEED(float(speeda),10)
+                                            PTP.MOVJ_XYZ(temp_x[0], temp_y[0], temp_z[0], temp_r[0])
+                                            fbreak = 0
+                                            while True:
+                                                spose1 = sendpose(1,0)
+                                                print(spose1)
+                                                if spose1 == 'ERROR 101':
+                                                    print(spose1)
+                                                    return 1
+                                                if spose1[5] == str(temp_x[0]) and spose1[6] == str(temp_y[0]) and spose1[7] == str(temp_z[0]) and spose1[8] == str(temp_r[0]): 
+                                                    print("harusnya break")
+                                                    fbreak = 1
+                                                    break
+                                            if fbreak == 1:
+                                                break
                                 fstop1 = 0
                                 fpause2 = 0
                                 sisa = 0
+                                print("berhasil 0")
                             elif fvacum1 == 1:
                                 print("vaccumm menyala")
                                 while True:
@@ -249,14 +318,47 @@ def main():
                                             mainset.start()
                                             fungsi = mmove.move(data2,1)
                                             print("harusnya mati")
-                                            fstop1 = 0
-                                            fpause2 = 0
-                                            sisa = 0
-                                            break
+                                            fbreak = 0
+                                        elif data2 == "A_RESET":
+                                            PTP.SPEED(float(speeda),10)
+                                            PTP.MOVJ_XYZ(temp_x[0], temp_y[0], temp_z[0], temp_r[0])
+                                            while True:
+                                                spose1 = sendpose(1,0)
+                                                print(spose1)
+                                                if spose1 == 'ERROR 101':
+                                                    print(spose1)
+                                                    return 1
+                                                if spose1[5] == str(temp_x[0]) and spose1[6] == str(temp_y[0]) and spose1[7] == str(temp_z[0]) and spose1[8] == str(temp_r[0]): 
+                                                    print("harus break")
+                                                    fbreak = 1
+                                                    break
+                                            if fbreak == 1:
+                                                break                                                
+                                fstop1 = 0
+                                fpause2 = 0
+                                sisa = 0
+                                print("berhasil 1")
                     if fungsi == "RECORD": 
-                        teaching()
+                        teach1 = teaching()
+                        print("TEACHING LOHHH")
+                        if teach1 == 1:
+                            return 1
             if flag == True:
                 pose = sendpose(1,0)
+                print(pose)
+                if pose == 'ERROR 101':
+                    print(pose)
+                    return 1
+    print("kok lewat doang")
+    fpause1 = 0
+    fpause2 = 0
+    fstop1 = 0
+    fvacum = 0
+    fvacum1 = 0
+    ftohome = 0
+    floop = 0
+    speeda = ""
+    return 0
 def deletedata():
     temp_j1.clear()
     temp_j2.clear()
@@ -277,8 +379,22 @@ def deletedata():
     print(temp_z)
     print(temp_r)
     print(urutan)
+    print("data di delete")
+def remove(i):
+    del temp_j1[i]
+    del temp_j2[i]
+    del temp_j3[i]
+    del temp_j4[i]
+    del temp_x[i]
+    del temp_y[i]
+    del temp_z[i]
+    del temp_r[i]
+    del urutan[i]
 def teaching():
     pose = sendpose(1,0)
+    if pose =='ERROR 101':
+        error = 'ERROR 101'
+        return error
     joint1 = float(pose[1])
     joint2 = float(pose[2])
     joint3 = float(pose[3])
@@ -323,11 +439,17 @@ def runauto(sisa,sisaloop,pengulangan):
             urutanp = i
             if urutan[i] == "Vof":
                 fvacum = 0
-                sendpose(fvacum,1)
+                jala = sendpose(fvacum,1)
+                if jala =='ERROR 101':
+                    error = 'EEROR 101'
+                    return error
                 mmove.move(urutan[i], 1)
             elif urutan[i] == "Von":
                 fvacum = 1
-                sendpose(fvacum,1)
+                jala = sendpose(fvacum,1)
+                if jala =='ERROR 101':
+                    error = 'ERROR 101'
+                    return error
                 mmove.move(urutan[i], 1)
             else:
                 # print("ada pergerakan")
@@ -337,7 +459,9 @@ def runauto(sisa,sisaloop,pengulangan):
                 fstop = 0
                 # print("disini bukan")
                 nilaihenti = henti(i,j,fvacum,fstop,fpause)
-                # print("berhasil")
+                if nilaihenti == 'ERROR 101':
+                    return nilaihenti
+                print("berhasil")
                 if nilaihenti[5] == 1:
                     # print("oke")
                     return nilaihenti
@@ -347,6 +471,8 @@ def runauto(sisa,sisaloop,pengulangan):
                 PTP.SPEED(float(speeda),50)
                 PTP.MOVJ_XYZ(temp_x[0], temp_y[0], temp_z[0], temp_r[0])
                 nilaihenti1 = henti(0,j,fvacum,fstop,fpause)
+                if nilaihenti1 == 'ERROR 101':
+                    return nilaihenti1
                 # print('keadaan pause ftohome:{} '.format(nilaihenti1[0]))
                 if nilaihenti1[0] == 1:
                     while True:
@@ -367,24 +493,82 @@ def runauto(sisa,sisaloop,pengulangan):
                                 dongo = 1
                         if dongo == 1:
                             nilaihenti1 = henti(0,j,fvacum,fstop,0)
+                            if nilaihenti1 == 'ERROR 101':
+                                return nilaihenti1
                             if nilaihenti1[0] == 0:
                                 break
                 ftohome = 0
                 # print('nilai ftohom:{}'.format(ftohome))
     listhenti = [nilaihenti1[0], 0, nilaihenti1[2], nilaihenti1[3], 0]
     return listhenti
-
+def setport():
+    while True:
+        available_ports = glob('/dev/ttyUSB0')
+        if len(available_ports) == 0:
+            available_ports = glob('/dev/ttyUSB1')
+            if len(available_ports) == 0:
+                available_ports = glob('/dev/ttyUSB2')
+                if len(available_ports) == 0:
+                    available_ports = glob('/dev/ttyUSB3')
+        if len(available_ports) != 0:
+            return available_ports
 #------------main------------#
 
 koneksi(setsocket)
+error = 0
+a = 0
+
 while True:
-    print ("menunggu")
-    conn, client_address = sock.accept()
-    global conn
-    print('alamat : {}'.format(client_address))
-    tersambung = False
-    sendpose(1,0)
-    main()
+    if error == 0:
+        print ("menunggu koneksi")
+        conn, client_address = sock.accept()
+        global conn
+        print('alamat : {}'.format(client_address))
+        print(type(conn))
+        tersambung = False
+        print("menunggu port")
+        avail_ports =setport()
+        global avail_ports
+        dobotkk = Dobot(avail_ports[0])
+        global dobotkk
+        error = main()
+        if error == 1:
+            a = 0
+            deletedata()
+            fpause1 = 0
+            fpause2 = 0
+            fstop1 = 0
+            fvacum = 0
+            fvacum1 = 0
+            ftohome = 0
+            floop = 0
+            speeda = ""
+            mainset.close()
+        print('ini error bukan di main: {}'.format(error))
+        print("force close")
+    
+    if error == 1:
+        print("menunggu port")
+        avail_ports =setport()
+        global avail_ports
+        dobotkk = Dobot(avail_ports[0])
+        global dobotkk
+        error = main()
+        if error == 1:
+            a = 0
+            deletedata()
+            fpause1 = 0
+            fpause2 = 0
+            fstop1 = 0
+            fvacum = 0
+            fvacum1 = 0
+            ftohome = 0
+            floop = 0
+            speeda = ""
+            mainset.close()
+        print('ini error bukan di main'.format(error))
+        print("force close") 
+    
     # jumlah = 0
     # while True:
     #     tersambung = True

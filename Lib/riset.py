@@ -5,7 +5,7 @@ from threading import Thread
 from multiprocessing import Process
 import socket
 import select, errno,sys
-
+from threading import Thread
 #--------Library Buatan--------#
 sys.path.append('../')
 from pydobot.dobot import Dobot
@@ -14,27 +14,31 @@ from pydobot.JOG import JOG
 
 #--------Config Port--------#
 class setport():
+
     port1 = True
     def __init__(self, debug = False):
         self.debug = debug
-        self.available_ports = glob('/dev/ttyUSB0')  # mask for OSX Dobot port
-        if len(self.available_ports) == 0:
-            self.available_ports = glob('/dev/ttyUSB1')
-            if len(self.available_ports) == 0:
-                self.available_ports = glob('/dev/ttyUSB2')
-                if len(self.available_ports) == 0:
-                    self.available_ports = glob('/dev/ttyUSB3')
-                    if len(self.available_ports) == 0:
-                        print('no port found for Dobot Magician')
-                        exit(1)
+    def _awal(self):
+        while True:
+            lable_ports = glob('/dev/ttyUSB0')  # mask for OSX Dobot port
+            if len(lable_ports) == 0:
+                lable_ports = glob('/dev/ttyUSB1')
+                if len(lable_ports) == 0:
+                    lable_ports = glob('/dev/ttyUSB2')
+                    if len(lable_ports) == 0:
+                        lable_ports = glob('/dev/ttyUSB3')
+            if len(lable_ports) != 0:
+                return lable_ports[0]
+                 
     def mainset(self):
-        self.main = Dobot(port = self.available_ports[0] )
+        self.main = Dobot(port = self._awal() )
+        # self.main = Dobot('/dev/ttyUSB0')
         return self.main
     def jog(self):
-        self.jog = JOG(port = self.available_ports[0])
+        self.jog = JOG(port = self._awal())
         return self.jog
     def m_port(self):
-        self.m_port = self.available_ports[0]
+        self.m_port = self._awal()
         return self.m_port
 
 class setsocket():
