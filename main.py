@@ -247,7 +247,8 @@ def main():
                                         if data2 == "Vof":
                                             print("di tekan")
                                             mainset.start()
-                                            fungsi = mmove.fungsi(data2,1)
+                                            fungsi = mmove.move(data2,1)
+                                            print("harusnya mati")
                                             fstop1 = 0
                                             fpause2 = 0
                                             sisa = 0

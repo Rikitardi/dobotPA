@@ -127,6 +127,7 @@ class manualmove():
         elif self.data2 == "Vof":
             if self.aktive == 1:
                 print(data2)
+                print("mati ya bangsat")
             self.Vac.suck(False)
 
 if __name__ == "__main__":
