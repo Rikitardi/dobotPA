@@ -126,11 +126,11 @@ def feedback(kondisi):
     if kondisi == False:
         print("play false")
         fbstr = 'play:false'
-        conn.sendall(fbstr.encode())
+        # conn.sendall(fbstr.encode())
     elif kondisi == True:
         print("play true")
         fbstr = 'play:true'
-        conn.sendall(fbstr.encode())
+        # conn.sendall(fbstr.encode())
 def main():
     print("ini fungsi main")
     stop = False
@@ -173,8 +173,8 @@ def main():
                         flag = False
                         print(flag)
                 if data3 == "Von" or data3 == "Vof":
-                        data5 = data3
-                        global data5
+                    data5 = data3
+                    global data5
                 if data2 == "TEACH":
                     data5 = "home"
                     global data5
@@ -221,7 +221,8 @@ def main():
                                     fpause2 = 1
                                 print("keadaan : fstop1 = {}".format(fstop1))
                                 print("keadaan : fvacum1 = {}".format(fvacum1))
-                        elif fstop1 == 1 and fpause2 == 1:
+                        if fstop1 == 1 and fpause2 == 1:
+                            print("masuk stop")
                             if fvacum1 == 0:
                                 mainset.start()
                                 print("keadaan : menuju home")
@@ -231,7 +232,26 @@ def main():
                                 fpause2 = 0
                                 sisa = 0
                             elif fvacum1 == 1:
-                                pass
+                                print("vaccumm menyala")
+                                while True:
+                                    try:
+                                        rdy_read, rdy_write, sock_err = select.select([conn,], [conn], [])
+                                    except select.error:
+                                        print('Select() failed on socket with {}'.format(client_address))
+                                        return 1
+                                    if len(rdy_read) > 0:
+                                        print("data masuk")
+                                        data_recv = conn.recv(10)
+                                        data2 = data_recv.decode()
+                                        print('ini di stop: {}'.format(data2))
+                                        if data2 == "Vof":
+                                            print("di tekan")
+                                            mainset.start()
+                                            fungsi = mmove.fungsi(data2,1)
+                                            fstop1 = 0
+                                            fpause2 = 0
+                                            sisa = 0
+                                            break
                     if fungsi == "RECORD": 
                         teaching()
             if flag == True:
@@ -356,7 +376,6 @@ def runauto(sisa,sisaloop,pengulangan):
 #------------main------------#
 
 koneksi(setsocket)
-
 while True:
     print ("menunggu")
     conn, client_address = sock.accept()
@@ -374,10 +393,6 @@ while True:
     #     if jumlah == 20:
     #         close
     #         break
-# print("nunggu 10 detik")
-# sleep(10)
-# close
-# print("terputus")
-# main()
+
 
 
