@@ -40,6 +40,10 @@ class manualmove():
             return "PAUSE"
             self.JogFunc.idle()            
             print(self.fungsi1)
+        if self.fungsi1.find("REMOVE") != -1:
+            self.remove = self.fungsi1.split()
+            return self.remove
+            print(self.fungsi1)
         if self.fungsi1.find("STR") != -1:
             self.start = self.fungsi1.split()
             return self.start
@@ -56,7 +60,7 @@ class manualmove():
         if self.fungsi1 == "B_SPEED" :
             return "SPEED"
             print(self.fungsi1)
-        if self.fungsi1 == "S_EMG" :
+        if self.fungsi1 == "EMG" :
             return "EMG"
             print(self.fungsi1)
         if self.fungsi1 == "S_RESET" :
@@ -78,39 +82,39 @@ class manualmove():
             self.speed = self.data2.split()
             self.velo = self.speed[1]
             self.JogFunc.jspeed(float(self.velo),50)
-        if self.data2 == "J1P1" :
+        if self.data2 == "J1P1      " :
             if self.aktive == 1:
                 print(data2)
             self.JogFunc.joint1pos()
-        elif self.data2 == "J1M1":
+        elif self.data2 == "J1M1      ":
             if self.aktive == 1:
                 print(data2)
             self.JogFunc.joint1min()
-        elif self.data2 == "J2P1":
+        elif self.data2 == "J2P1      ":
             if self.aktive == 1:
                 print(data2)
             self.JogFunc.joint2pos()            
-        elif self.data2 == "J2M1":
+        elif self.data2 == "J2M1      ":
             if self.aktive == 1:
                 print(data2)
             self.JogFunc.joint2min()
-        elif self.data2 == "J3P1":
+        elif self.data2 == "J3P1      ":
             if self.aktive == 1:
                 print(data2)
             self.JogFunc.joint3pos()
-        elif self.data2 == "J3M1":
+        elif self.data2 == "J3M1      ":
             if self.aktive == 1:
                 print(data2)
             self.JogFunc.joint3min()
-        elif self.data2 == "J4P1":
+        elif self.data2 == "J4P1      ":
             if self.aktive == 1:
                 print(data2)
             self.JogFunc.joint4pos()
-        elif self.data2 == "J4M1":
+        elif self.data2 == "J4M1      ":
             if self.aktive == 1:
                 print(data2)
             self.JogFunc.joint4min()
-        elif self.data2 == "J1P0" or self.data2 == "J1M0" or self.data2 == "J2P0" or self.data2 == "J2M0" or self.data2 == "J3P0" or self.data2 == "J3M0" or self.data2 == "J4P0" or self.data2 == "J4M0":
+        elif self.data2 == "J1P0      " or self.data2 == "J1M0      " or self.data2 == "J2P0      " or self.data2 == "J2M0      " or self.data2 == "J3P0      " or self.data2 == "J3M0      " or self.data2 == "J4P0      " or self.data2 == "J4M0      ":
             if self.aktive == 1:
                 print(data2)
             self.JogFunc.jspeed(2,1)

@@ -61,7 +61,6 @@ mport = setport.m_port()
 mmove = manualmove(mport)
 PTP = PTP(mport)
 
-
 #------------fungsi------------#
 fpause1 = 0
 fpause2 = 0
@@ -71,46 +70,47 @@ fvacum1 = 0
 ftohome = 0
 floop = 0
 speeda = ""
-
-def getinput():
+def waitdata(panjangData):
+    # print("wait data")
     try:
         rdy_read, rdy_write, sock_err = select.select([conn,], [conn], [])
     except select.error:
         print('Select() failed on socket with {}'.format(client_address))
         return 1
     if len(rdy_read) > 0:
-        data_recv = conn.recv(10)
+        data_recv = conn.recv(panjangData)
+        print(panjangData)
         data2 = data_recv.decode()
-        return data2
+        # print(len(data2))
+        if data2 == "EMG":                          #EMGERGENCY#
+            print("EMG HERE")
+            mainset.force()
+            return "EMG"
+        return [True, data2]    
+    return [False]
+
 def sendpose(pvacum,syarat):
-    # try:
-        # mainset
-        getpose = dobotkk.run()
-        if getpose == 'ERROR 101' :
-            pesan = 'ERROR 101'
-            return pesan
-        r = requests.get('http://192.168.43.82/webPA/API_pa.php?x='+str(getpose[6])+'&y='+str(getpose[5])+'&z='+str(getpose[7])+'&r='+str(getpose[8])+'&f=1')
-        if syarat == 1:
-            getpose1 = format('K:%s:%s:%s:%s:%s:%s:%s:%s::vc#%s::#' % (getpose[5],getpose[6],getpose[7],getpose[8],getpose[1],getpose[2],getpose[3],getpose[4],pvacum))
-            getpose2 = getpose1.encode()
-        else:
-            getpose1 = format('K:%s:%s:%s:%s:%s:%s:%s:%s::::#' % (getpose[5],getpose[6],getpose[7],getpose[8],getpose[1],getpose[2],getpose[3],getpose[4]))
-            getpose2 = getpose1.encode()
-        conn.sendall(getpose2)
-        return getpose
-    # except:
-        # pass
-        # pesan = 'ERROR 101'
-        # return pesan
+    getpose = dobotkk.run()
+    if getpose == 'ERROR 101' :
+        pesan = 'ERROR 101'
+        return pesan
+    # r = requests.get('http://192.168.43.82/webPA/API_pa.php?x='+str(getpose[6])+'&y='+str(getpose[5])+'&z='+str(getpose[7])+'&r='+str(getpose[8])+'&f=1')
+    if syarat == 1:
+        getpose1 = format('K:%s:%s:%s:%s:%s:%s:%s:%s::vc#%s::#' % (getpose[5],getpose[6],getpose[7],getpose[8],getpose[1],getpose[2],getpose[3],getpose[4],pvacum))
+        getpose2 = getpose1.encode()
+    else:
+        getpose1 = format('K:%s:%s:%s:%s:%s:%s:%s:%s::::#' % (getpose[5],getpose[6],getpose[7],getpose[8],getpose[1],getpose[2],getpose[3],getpose[4]))
+        getpose2 = getpose1.encode()
+    conn.sendall(getpose2)
+    return getpose
+    
 def henti(i,j,fvacum,fstop,fpause):
-    while True:
-        try:
-            rdy_read, rdy_write, sock_err = select.select([conn,], [conn], [])
-        except select.error:
-            return 1
-        if len(rdy_read) > 0:
-            pause = conn.recv(8)
-            pause_d = pause.decode()
+    while True:    
+        wdata = waitdata(10)
+        if wdata == "EMG":
+            return "EMG"
+        if wdata[0] == True:
+            pause_d = wdata[1]
             fungsi = mmove.fungsi(pause_d)
             print("terus aja sampai modar")
             if fungsi == "PAUSE":
@@ -146,8 +146,8 @@ def henti(i,j,fvacum,fstop,fpause):
         listhenti = [fpause, i, fstop, fvacum, j, 1]
         return listhenti 
     listbangsat = [0,0,0,0,0,0]
-    # print("diujung henti")
     return listbangsat
+
 def feedback(kondisi):
     if kondisi == False:
         print("play false")
@@ -158,10 +158,9 @@ def feedback(kondisi):
         fbstr = 'play:true'
         # conn.sendall(fbstr.encode())
 def main():
-    # try:
     print("ini fungsi main")
     stop = False
-    print(stop)
+    # print(stop)
     flag = False
     teach = False
     sisa = 0
@@ -177,21 +176,21 @@ def main():
     galat = sendpose(1,0)
     if galat =='ERROR 101':
         return 1
-    print("kok gk masuk")
+    # print("kok gk masuk")
+    keluarmain = 0
     while not stop:
         if conn:
-            try:
-                rdy_read, rdy_write, sock_err = select.select([conn,], [conn], [])
-            except select.error:
-                print('Select() failed on socket with {}'.format(client_address))
-                return 1
-            if len(rdy_read) > 0:
-                data_recv = conn.recv(10)
-                data2 = data_recv.decode()
+            wdata = waitdata(10)
+            if wdata == "EMG":
+                print("emg di main")
+                keluarmain = 1
+                break
+            if wdata[0] == True:
+                data2 = wdata[1]
                 print(data2)
                 data3 = data2
                 mmove.move(data3, 1)
-                print("pls di sini")
+                # print("pls di sini")
                 print(teach)
                 if data3 == "EXIT":
                     print("close")
@@ -221,7 +220,6 @@ def main():
                     print(fungsi)
                     if data2.find("REMOVE") != -1:
                         arrayD = fungsi[1]
-                        print(arrayD)
                         remove(int(arrayD))
                     if data2.find("STR") != -1:
                         pengulangan = fungsi[1]
@@ -238,6 +236,9 @@ def main():
                             if fpause1 == 1:
                                 mainset.start()
                                 fhenti = runauto(sisa, floop, int(pengulangan))
+                                if fhenti == "EMG":
+                                    keluarmain = 1
+                                    break
                                 if fhenti == 'ERROR 101':
                                     return 1
                                 fpause1 = fhenti[0]
@@ -251,6 +252,9 @@ def main():
                                     fpause2 = 1
                             elif fpause1 == 0:
                                 fhenti = runauto(sisa, floop, int(pengulangan))
+                                if fhenti == "EMG":
+                                    keluarmain = 1
+                                    break
                                 if fhenti == 'ERROR 101':
                                     return 1                                
                                 print(fhenti)
@@ -268,16 +272,14 @@ def main():
                         if fstop1 == 1 and fpause2 == 1:
                             print("masuk stop")
                             if fvacum1 == 0:
+                                emg0 = 0
                                 while True:
-                                    try:
-                                        rdy_read, rdy_write, sock_err = select.select([conn,], [conn], [])
-                                    except select.error:
-                                        print('Select() failed on socket with {}'.format(client_address))
-                                        return 1
-                                    if len(rdy_read) > 0:
-                                        print("data masuk")
-                                        data_recv = conn.recv(10)
-                                        data2 = data_recv.decode()
+                                    wdata = waitdata(10)
+                                    if wdata == "EMG":
+                                        emg0 = 1
+                                        break
+                                    if wdata[0] == True:
+                                        data2 = wdata[1]
                                         if data2 == "A_RESET":
                                             mainset.start()
                                             print("keadaan : menuju home")
@@ -286,45 +288,46 @@ def main():
                                             fbreak = 0
                                             while True:
                                                 spose1 = sendpose(1,0)
-                                                print(spose1)
+                                                # print(spose1)
                                                 if spose1 == 'ERROR 101':
                                                     print(spose1)
                                                     return 1
                                                 if spose1[5] == str(temp_x[0]) and spose1[6] == str(temp_y[0]) and spose1[7] == str(temp_z[0]) and spose1[8] == str(temp_r[0]): 
-                                                    print("harusnya break")
+                                                    # print("harusnya break")
                                                     fbreak = 1
                                                     break
                                             if fbreak == 1:
                                                 break
+                                if emg0 == 1:
+                                    keluarmain = 1
+                                    break
                                 fstop1 = 0
                                 fpause2 = 0
                                 sisa = 0
-                                print("berhasil 0")
+                                # print("berhasil 0")
                             elif fvacum1 == 1:
                                 print("vaccumm menyala")
                                 while True:
-                                    try:
-                                        rdy_read, rdy_write, sock_err = select.select([conn,], [conn], [])
-                                    except select.error:
-                                        print('Select() failed on socket with {}'.format(client_address))
-                                        return 1
-                                    if len(rdy_read) > 0:
-                                        print("data masuk")
-                                        data_recv = conn.recv(10)
-                                        data2 = data_recv.decode()
+                                    emg1 = 0
+                                    wdata = waitdata(10)
+                                    if wdata == "EMG":
+                                        emg1 =1
+                                        break
+                                    if wdata[0] == True:
+                                        data2 = wdata[1]
                                         print('ini di stop: {}'.format(data2))
                                         if data2 == "Vof":
-                                            print("di tekan")
+                                            # print("di tekan")
                                             mainset.start()
                                             fungsi = mmove.move(data2,1)
-                                            print("harusnya mati")
+                                            # print("harusnya mati")
                                             fbreak = 0
                                         elif data2 == "A_RESET":
                                             PTP.SPEED(float(speeda),10)
                                             PTP.MOVJ_XYZ(temp_x[0], temp_y[0], temp_z[0], temp_r[0])
                                             while True:
                                                 spose1 = sendpose(1,0)
-                                                print(spose1)
+                                                # print(spose1)
                                                 if spose1 == 'ERROR 101':
                                                     print(spose1)
                                                     return 1
@@ -333,23 +336,92 @@ def main():
                                                     fbreak = 1
                                                     break
                                             if fbreak == 1:
-                                                break                                                
+                                                break                                                                                
+                                if emg1 == 1:
+                                    keluarmain = 1
+                                    break
                                 fstop1 = 0
                                 fpause2 = 0
                                 sisa = 0
-                                print("berhasil 1")
+                                # print("berhasil 1")
                     if fungsi == "RECORD": 
                         teach1 = teaching()
-                        print("TEACHING LOHHH")
+                        # print("TEACHING LOHHH")
                         if teach1 == 1:
                             return 1
+                    if data2 == "LStart":
+                        print("siap di save")
+                        while True:
+                            init = 0
+                            v = ""
+                            keluarMain = 0
+                            wdata = waitdata(1000)
+                            if wdata == "EMG":
+                                print("emg di main")
+                                keluarMain = 1
+                                break
+                            if wdata[0] == True:
+                                load = wdata[1]
+                                # print(load)
+                                array1 = load.split("#")
+                                p_array1 = len(array1)
+                                # print(array1[p_array1 - 1])
+                                for i in range(p_array1):
+                                    if i != p_array1 - 1:
+                                        array2 = array1[i].split(",")
+                                        p_array2 = len(array2)
+                                        x = array2[1]
+                                        y = array2[2]
+                                        z = array2[3]
+                                        r = array2[4]
+                                        j1 = array2[5]
+                                        j2 = array2[6]
+                                        j3 = array2[7]
+                                        j4 = array2[8]
+                                        u = array2[9]
+                                        if init == 0:
+                                            if u == "ON":
+                                                flag_u = 0
+                                                init == 1
+                                            if u == "OFF":
+                                                flag_u = 1
+                                                init == 1
+
+                                        if u == "ON" and flag_u == 0:
+                                            v = "Von"
+                                            flag_u = 1
+                                        elif u == "OFF" and flag_u == 1:
+                                            v = "Vof"
+                                            flag_u = 0 
+                                        load_koordinat(float(j1),float(j2),float(j3),float(j4),float(x),float(y),float(z),float(r),v)
+                                        # print('p_array2 : {}'.format(p_array2))
+
+                                # for i in range(len(array1)):
+                                #     array2 = array1[i].split(",")
+                                #     for j in range(len(array2)):
+                                                                            
+                                # print(array1[0])
+                                # print(array2[1])
+                                # print(array2[9])
+                                if load.find("LDone")!= -1:
+                                    break
+                        if keluarMain == 1:
+                            break
             if flag == True:
                 pose = sendpose(1,0)
-                print(pose)
                 if pose == 'ERROR 101':
                     print(pose)
                     return 1
-    print("kok lewat doang")
+    # print("kok lewat doang")
+    if keluarmain == 1:
+        while True:
+            wdata = waitdata(10)
+            if wdata[0] == True:
+                data2 = wdata[1]
+                print("Emergency ditekan")
+                if data2 == "ERESET":
+                    mainset.start()
+                    return "EMG"
     fpause1 = 0
     fpause2 = 0
     fstop1 = 0
@@ -357,7 +429,6 @@ def main():
     fvacum1 = 0
     ftohome = 0
     floop = 0
-    speeda = ""
     return 0
 def deletedata():
     temp_j1.clear()
@@ -390,6 +461,26 @@ def remove(i):
     del temp_z[i]
     del temp_r[i]
     del urutan[i]
+def load_koordinat(j1,j2,j3,j4,x,y,z,r,u):
+    temp_j1.append(j1)
+    temp_j2.append(j2)
+    temp_j3.append(j3)
+    temp_j4.append(j4)
+    temp_x.append(x)
+    temp_y.append(y)
+    temp_z.append(z)
+    temp_r.append(r)
+    urutan.append(u)
+                
+    print(str(temp_j1))
+    print(str(temp_j2))
+    print(str(temp_j3))
+    print(str(temp_j4))
+    print(str(temp_x))
+    print(str(temp_y))
+    print(str(temp_z))
+    print(str(temp_r))
+    print(str(urutan))
 def teaching():
     pose = sendpose(1,0)
     if pose =='ERROR 101':
@@ -459,9 +550,11 @@ def runauto(sisa,sisaloop,pengulangan):
                 fstop = 0
                 # print("disini bukan")
                 nilaihenti = henti(i,j,fvacum,fstop,fpause)
+                if nilaihenti == "EMG":
+                    return nilaihenti
                 if nilaihenti == 'ERROR 101':
                     return nilaihenti
-                print("berhasil")
+                # print("berhasil")
                 if nilaihenti[5] == 1:
                     # print("oke")
                     return nilaihenti
@@ -471,20 +564,20 @@ def runauto(sisa,sisaloop,pengulangan):
                 PTP.SPEED(float(speeda),50)
                 PTP.MOVJ_XYZ(temp_x[0], temp_y[0], temp_z[0], temp_r[0])
                 nilaihenti1 = henti(0,j,fvacum,fstop,fpause)
+                if nilaihenti1 == "EMG":
+                    return nilaihenti1
                 if nilaihenti1 == 'ERROR 101':
                     return nilaihenti1
                 # print('keadaan pause ftohome:{} '.format(nilaihenti1[0]))
                 if nilaihenti1[0] == 1:
                     while True:
                         dongo = 0
-                        try:
-                            rdy_read, rdy_write, sock_err = select.select([conn,], [conn], [])
-                        except select.error:
-                            return 1
-                        if len(rdy_read) > 0:
-                            pausehome = conn.recv(8)
-                            phome = pausehome.decode()
-                            print(phome)
+                        wdata = waitdata(10)
+                        if wdata == "EMG":
+                            return "EMG"
+                        if wdata[0] == True:
+                            phome = wdata[1] 
+                            # print(phome)
                             if phome.find("STR") != -1:
                                 feedback(False)
                                 mainset.start()
@@ -493,6 +586,8 @@ def runauto(sisa,sisaloop,pengulangan):
                                 dongo = 1
                         if dongo == 1:
                             nilaihenti1 = henti(0,j,fvacum,fstop,0)
+                            if nilaihenti1 == "EMG":
+                                return nilaihenti1
                             if nilaihenti1 == 'ERROR 101':
                                 return nilaihenti1
                             if nilaihenti1[0] == 0:
@@ -545,8 +640,7 @@ while True:
             speeda = ""
             mainset.close()
         print('ini error bukan di main: {}'.format(error))
-        print("force close")
-    
+        print("force close")   
     if error == 1:
         print("menunggu port")
         avail_ports =setport()
@@ -581,3 +675,4 @@ while True:
 
 
 
+#1.48 6/14/2019

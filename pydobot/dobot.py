@@ -23,7 +23,7 @@ class Dobot(threading.Thread):
         threading.Thread.__init__(self)
         self.verbose = verbose
         self.lock = threading.Lock()
-        print("udah pusin ainggghhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh")
+        # print("udah pusin ainggghhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh")
         self.adaport = port
         self.ser = serial.Serial(port,
                                  baudrate=115200,
@@ -31,7 +31,7 @@ class Dobot(threading.Thread):
                                  stopbits=serial.STOPBITS_ONE,
                                  bytesize=serial.EIGHTBITS)
         is_open = self.ser.isOpen()
-        print(is_open)
+        # print(is_open)
         print('pydobot: %s open' % self.ser.name if is_open else 'failed to open serial port')
         self._set_home_params(x=250, y=0, z=50, r=0)
         self.start()
@@ -45,16 +45,16 @@ class Dobot(threading.Thread):
             return listj
 
     def close(self):
-        print("dclose harusnya")
+        # print("dclose harusnya")
         self.on = False
-        print("divawah on")
+        # print("divawah on")
         self.lock.acquire()
-        print("dibawah lock")
+        # print("dibawah lock")
         self.ser.close()
-        print("dclose tengah")
+        # print("dclose tengah")
         if self.verbose:
             print('pydobot: %s closed' % self.ser.name)
-        print('pydobot: %s closed' % self.ser.name)
+        # print('pydobot: %s closed' % self.ser.name)
         self.lock.release()
         return "ERROR 101"
     def _send_command(self, msg):
@@ -81,7 +81,7 @@ class Dobot(threading.Thread):
             b = self.ser.read_all()
             # print("didalam read message")
             if len(b) > 0:
-                print(b)
+                # print(b)
                 msg = Message(b)
             # if self.verbose:
                 # print('pydobot: <<', msg)
@@ -92,7 +92,7 @@ class Dobot(threading.Thread):
         msg = Message()
         msg.id = 10
         # try:
-        print("didalam getpose")
+        # print("didalam getpose")
         response = self._send_command(msg)
         try:
             self.x = struct.unpack_from('f', response.params, 0)[0]
