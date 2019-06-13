@@ -149,13 +149,18 @@ def henti(i,j,fvacum,fstop,fpause):
     return listbangsat
 
 def feedback(kondisi):
+    print("feeeeeeeeeeeeeeeeeeeeeedddddddddddddbbbbbbbbbbbbbacccccccccckkkkkkkkkk")
     if kondisi == False:
         print("play false")
-        fbstr = 'play:false'
-        # conn.sendall(fbstr.encode())
+        fbstr = 'play:false:'
+        conn.sendall(fbstr.encode())
     elif kondisi == True:
         print("play true")
-        fbstr = 'play:true'
+        fbstr = 'play:true:'
+        conn.sendall(fbstr.encode())
+    elif kondisi == "emg-fcum":
+        print("play true")
+        fbstr = 'emg-fcm:true:'
         # conn.sendall(fbstr.encode())
 def main():
     print("ini fungsi main")
@@ -386,7 +391,6 @@ def main():
                                             if u == "OFF":
                                                 flag_u = 1
                                                 init == 1
-
                                         if u == "ON" and flag_u == 0:
                                             v = "Von"
                                             flag_u = 1
@@ -394,15 +398,6 @@ def main():
                                             v = "Vof"
                                             flag_u = 0 
                                         load_koordinat(float(j1),float(j2),float(j3),float(j4),float(x),float(y),float(z),float(r),v)
-                                        # print('p_array2 : {}'.format(p_array2))
-
-                                # for i in range(len(array1)):
-                                #     array2 = array1[i].split(",")
-                                #     for j in range(len(array2)):
-                                                                            
-                                # print(array1[0])
-                                # print(array2[1])
-                                # print(array2[9])
                                 if load.find("LDone")!= -1:
                                     break
                         if keluarMain == 1:
@@ -413,15 +408,17 @@ def main():
                     print(pose)
                     return 1
     # print("kok lewat doang")
-    if keluarmain == 1:
+    if keluarmain == 1: #pemberhentian emergency
         while True:
             wdata = waitdata(10)
             if wdata[0] == True:
                 data2 = wdata[1]
                 print("Emergency ditekan")
                 if data2 == "ERESET":
-                    mainset.start()
-                    return "EMG"
+                    if data5 == "Von" and emg_fcum == 1:
+                        mainset.start()
+                        feedback("emg-fcum")    
+                        return "EMG"
     fpause1 = 0
     fpause2 = 0
     fstop1 = 0
@@ -530,6 +527,8 @@ def runauto(sisa,sisaloop,pengulangan):
             urutanp = i
             if urutan[i] == "Vof":
                 fvacum = 0
+                emg_fcum = 0
+                global emg_fcum
                 jala = sendpose(fvacum,1)
                 if jala =='ERROR 101':
                     error = 'EEROR 101'
@@ -538,6 +537,8 @@ def runauto(sisa,sisaloop,pengulangan):
             elif urutan[i] == "Von":
                 fvacum = 1
                 jala = sendpose(fvacum,1)
+                emg_fcum = 1
+                global emg_fcum
                 if jala =='ERROR 101':
                     error = 'ERROR 101'
                     return error
@@ -595,6 +596,7 @@ def runauto(sisa,sisaloop,pengulangan):
                 ftohome = 0
                 # print('nilai ftohom:{}'.format(ftohome))
     listhenti = [nilaihenti1[0], 0, nilaihenti1[2], nilaihenti1[3], 0]
+    feedback(True)
     return listhenti
 def setport():
     while True:
