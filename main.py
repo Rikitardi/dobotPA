@@ -90,6 +90,7 @@ def waitdata(panjangData):
     return [False]
 
 def sendpose(pvacum,syarat):
+    print("ini sendpose")
     getpose = dobotkk.run()
     if getpose == 'ERROR 101' :
         pesan = 'ERROR 101'
@@ -114,13 +115,11 @@ def henti(i,j,fvacum,fstop,fpause):
             fungsi = mmove.fungsi(pause_d)
             print("terus aja sampai modar")
             if fungsi == "PAUSE":
-                feedback(True)
                 fpause = 1
                 mainset.force()    
                 print("ini pause")       
                 break
             if fungsi == "STOP":
-                feedback(True)
                 print("keadaan : stop di tekan")
                 fstop = 1
                 mainset.force()
@@ -159,11 +158,16 @@ def feedback(kondisi):
         fbstr = 'play:true:'
         conn.sendall(fbstr.encode())
     elif kondisi == "emg-fcum":
-        print("play true")
+        print("emg-fcum")
         fbstr = 'emg-fcm:true:'
-        # conn.sendall(fbstr.encode())
+        conn.sendall(fbstr.encode())
+    elif kondisi == "terhubung":
+        print("koneksi-true")
+        fbstr = 'koneksi:true:'
+        conn.sendall(fbstr.encode())
 def main():
     print("ini fungsi main")
+    emg_fcum = 0
     stop = False
     # print(stop)
     flag = False
@@ -197,6 +201,24 @@ def main():
                 mmove.move(data3, 1)
                 # print("pls di sini")
                 print(teach)
+                if data3 == "HOME":
+                    mainset.home(True)
+                    while True:
+                        pooose1 = sendpose(1,0)
+                        try :
+                            x = round(float(pooose1[5]))
+                            y = round(float(pooose1[6]))
+                            z = round(float(pooose1[7]))
+                            r = round(float(pooose1[8]))
+                            print(x)
+                            print(y)
+                            print(z)
+                            print(r)
+                        except ValueError:
+                            continue
+                        if x == 250 and y == 0 and z == 50 and r == 0: 
+                            sleep(5)
+                            break
                 if data3 == "EXIT":
                     print("close")
                     close
@@ -253,7 +275,7 @@ def main():
                                 floop = fhenti[4]                            
                                 if fstop1 == 0:
                                     fpause2 = 0
-                                elif fstop == 1:
+                                elif fstop1 == 1:
                                     fpause2 = 1
                             elif fpause1 == 0:
                                 fhenti = runauto(sisa, floop, int(pengulangan))
@@ -277,6 +299,7 @@ def main():
                         if fstop1 == 1 and fpause2 == 1:
                             print("masuk stop")
                             if fvacum1 == 0:
+                                print("vaccumm menyala")
                                 emg0 = 0
                                 while True:
                                     wdata = waitdata(10)
@@ -300,6 +323,7 @@ def main():
                                                 if spose1[5] == str(temp_x[0]) and spose1[6] == str(temp_y[0]) and spose1[7] == str(temp_z[0]) and spose1[8] == str(temp_r[0]): 
                                                     # print("harusnya break")
                                                     fbreak = 1
+                                                    feedback(True)
                                                     break
                                             if fbreak == 1:
                                                 break
@@ -311,7 +335,7 @@ def main():
                                 sisa = 0
                                 # print("berhasil 0")
                             elif fvacum1 == 1:
-                                print("vaccumm menyala")
+                                print("vaccumm mati")
                                 while True:
                                     emg1 = 0
                                     wdata = waitdata(10)
@@ -338,6 +362,7 @@ def main():
                                                     return 1
                                                 if spose1[5] == str(temp_x[0]) and spose1[6] == str(temp_y[0]) and spose1[7] == str(temp_z[0]) and spose1[8] == str(temp_r[0]): 
                                                     print("harus break")
+                                                    feedback(True)
                                                     fbreak = 1
                                                     break
                                             if fbreak == 1:
@@ -357,7 +382,8 @@ def main():
                     if data2 == "LStart":
                         print("siap di save")
                         while True:
-                            init = 0
+
+                            flag_u = 0
                             v = ""
                             keluarMain = 0
                             wdata = waitdata(1000)
@@ -366,11 +392,11 @@ def main():
                                 keluarMain = 1
                                 break
                             if wdata[0] == True:
+                                print("ini delete load")
+                                deletedata()
                                 load = wdata[1]
-                                # print(load)
                                 array1 = load.split("#")
                                 p_array1 = len(array1)
-                                # print(array1[p_array1 - 1])
                                 for i in range(p_array1):
                                     if i != p_array1 - 1:
                                         array2 = array1[i].split(",")
@@ -384,20 +410,25 @@ def main():
                                         j3 = array2[7]
                                         j4 = array2[8]
                                         u = array2[9]
-                                        if init == 0:
-                                            if u == "ON":
-                                                flag_u = 0
-                                                init == 1
-                                            if u == "OFF":
-                                                flag_u = 1
-                                                init == 1
-                                        if u == "ON" and flag_u == 0:
-                                            v = "Von"
+
+                                        if u != "ON":
+                                            v = ""
+
+                                        elif u == "ON" and flag_u == 0:
                                             flag_u = 1
+                                            v = "Von"
+
+                                        elif flag_u == 1 and u == "ON" :
+                                            v = ""
+
                                         elif u == "OFF" and flag_u == 1:
                                             v = "Vof"
-                                            flag_u = 0 
+                                            flag_u = 0
+
+                                        elif u == "OFF" and flag_u == 0:
+                                            v = ""
                                         load_koordinat(float(j1),float(j2),float(j3),float(j4),float(x),float(y),float(z),float(r),v)
+                                        init = 0
                                 if load.find("LDone")!= -1:
                                     break
                         if keluarMain == 1:
@@ -407,18 +438,64 @@ def main():
                 if pose == 'ERROR 101':
                     print(pose)
                     return 1
-    # print("kok lewat doang")
     if keluarmain == 1: #pemberhentian emergency
         while True:
             wdata = waitdata(10)
             if wdata[0] == True:
                 data2 = wdata[1]
+                print(data2)
                 print("Emergency ditekan")
-                if data2 == "ERESET":
-                    if data5 == "Von" and emg_fcum == 1:
-                        mainset.start()
-                        feedback("emg-fcum")    
-                        return "EMG"
+                if data2 == "ERESET": #pemberhentian reset
+                    mainset.start()
+                    if emg_fcum == 1:
+                        while True:
+                            wdata = waitdata(10)
+                            if wdata[0] == True:
+                                data2 = wdata[1]
+                                if data2 == "Vof":                                    
+                                    mainset.start()
+                                    mmove.move(data2,1)
+                                    feedback("emg-fcum")    
+                                    return "EMG"
+                                if data2 == "HOME":
+                                    mainset.home(True)
+                                    while True:
+                                        pooose1 = sendpose(1,0)
+                                        try :
+                                            x = round(float(pooose1[5]))
+                                            y = round(float(pooose1[6]))
+                                            z = round(float(pooose1[7]))
+                                            r = round(float(pooose1[8]))
+                                        except ValueError:
+                                            continue
+                                        if x == 250 and y == 0 and z == 50 and r == 0: 
+                                            sleep(5)
+                                            return "EMG"
+                    if emg_fcum == 0:
+                        print("emg_fcum")
+                        while True:
+                            wdata = waitdata(10)
+                            print("menunggu home")
+                            if wdata[0] == True:
+                                data2 = wdata[1]
+                                if data2 == "HOME":
+                                    mainset.start()
+                                    mainset.home(True)
+                                    while True:
+                                        print("proses home")
+                                        pooose1 = sendpose(1,0)
+                                        print(type(pooose1[5]))
+                                        try :
+                                            x = round(float(pooose1[5]))
+                                            y = round(float(pooose1[6]))
+                                            z = round(float(pooose1[7]))
+                                            r = round(float(pooose1[8]))
+                                        except ValueError:
+                                            continue
+                                        if x == 250 and y == 0 and z == 50 and r == 0: 
+                                            print("sleep")
+                                            sleep(5)
+                                            return "EMG"
     fpause1 = 0
     fpause2 = 0
     fstop1 = 0
@@ -614,15 +691,17 @@ def setport():
 koneksi(setsocket)
 error = 0
 a = 0
-
+error = ""
 while True:
-    if error == 0:
+    if error == "":
         print ("menunggu koneksi")
         conn, client_address = sock.accept()
         global conn
         print('alamat : {}'.format(client_address))
         print(type(conn))
         tersambung = False
+        feedback("terhubung")
+    if error == 0 or error == "EMG" or  error == "":
         print("menunggu port")
         avail_ports =setport()
         global avail_ports
@@ -631,6 +710,7 @@ while True:
         error = main()
         if error == 1:
             a = 0
+            print("yg ini kah")
             deletedata()
             fpause1 = 0
             fpause2 = 0
@@ -643,7 +723,7 @@ while True:
             mainset.close()
         print('ini error bukan di main: {}'.format(error))
         print("force close")   
-    if error == 1:
+    elif error == 1:
         print("menunggu port")
         avail_ports =setport()
         global avail_ports
@@ -652,6 +732,7 @@ while True:
         error = main()
         if error == 1:
             a = 0
+            print("atau yg ini kah")
             deletedata()
             fpause1 = 0
             fpause2 = 0

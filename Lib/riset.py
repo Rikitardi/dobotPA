@@ -19,6 +19,7 @@ class setport():
     def __init__(self, debug = False):
         self.debug = debug
     def _awal(self):
+        print("Menunggu Port Tersambung")
         while True:
             lable_ports = glob('/dev/ttyUSB0')  # mask for OSX Dobot port
             if len(lable_ports) == 0:
