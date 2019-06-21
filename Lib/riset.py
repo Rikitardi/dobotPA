@@ -18,7 +18,7 @@ class setport():
     port1 = True
     def __init__(self, debug = False):
         self.debug = debug
-    def _awal(self):
+    def awal(self):
         print("Menunggu Port Tersambung")
         while True:
             lable_ports = glob('/dev/ttyUSB0')  # mask for OSX Dobot port
@@ -32,7 +32,7 @@ class setport():
                 return lable_ports[0]
                  
     def mainset(self):
-        self.main = Dobot(port = self._awal() )
+        self.main = Dobot(port = self.awal() )
         # self.main = Dobot('/dev/ttyUSB0')
         return self.main
     def jog(self):
