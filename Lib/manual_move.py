@@ -9,7 +9,10 @@ import select, errno,sys
 sys.path.append('../')
 from pydobot.dobot import Dobot
 from pydobot.JOG import JOG
+from pin import pinPanel
 
+gpio = pinPanel()
+global gpio
 
 class manualmove():
     def __init__(self, available_ports):
@@ -115,6 +118,7 @@ class manualmove():
         elif self.data2 == "J1P0" or self.data2 == "J1M0" or self.data2 == "J2P0" or self.data2 == "J2M0" or self.data2 == "J3P0" or self.data2 == "J3M0" or self.data2 == "J4P0" or self.data2 == "J4M0":
             # if self.aktive == 1:
             #     print(self.data2)
+            gpio.lampu("kuning",1)
             self.JogFunc.jspeed(2,1)
             self.JogFunc.idle()
             self.JogFunc.jspeed(float(self.velo),50)

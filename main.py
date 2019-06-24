@@ -78,8 +78,15 @@ def waitdata(panjangData):
         print('Select() failed on socket with {}'.format(client_address))
         return 1
     if len(rdy_read) > 0:
-        data_recv = conn.recv(panjangData)
+        if str(panjangData).find("load") != -1:
+            y = panjangData.split("#")
+            print("delete f*ck")
+            deletedata()        
+            data_recv = conn.recv(int(y[1]))
+        else:
+            data_recv = conn.recv(panjangData)
         data2 = data_recv.decode()
+        print(data2)
         tombolEmg  = gpio.tombolEmg()
         if data2 == "EMG" or tombolEmg == 0:                          #EMGERGENCY#
             print("EMG HERE")
@@ -95,7 +102,8 @@ def sendpose(pvacum,syarat):
     if getpose == 'ERROR 101' :
         pesan = 'ERROR 101'
         return pesan
-    requests.get('http://192.168.43.82/webPA/API_pa.php?x='+str(getpose[6])+'&y='+str(getpose[5])+'&z='+str(getpose[7])+'&r='+str(getpose[8])+'&f=1')
+    print(webVacuum)
+    r = requests.get('http://192.168.43.82/webPA/API_pa.php?x='+str(getpose[6])+'&y='+str(getpose[5])+'&z='+str(getpose[7])+'&r='+str(getpose[8])+'&v='+str(webVacuum))
     if syarat == 1:
         getpose1 = format('K:%s:%s:%s:%s:%s:%s:%s:%s::vc#%s::#' % (getpose[5],getpose[6],getpose[7],getpose[8],getpose[1],getpose[2],getpose[3],getpose[4],pvacum))
         getpose2 = getpose1.encode()
@@ -107,7 +115,7 @@ def sendpose(pvacum,syarat):
     conn.sendall(getpose2)
     return getpose  
 def henti(i,j,fvacum,fstop,fpause):
-    # indicator("merah",0) #--------------------------> ind Merah
+# indicator("merah",0) #--------------------------> ind Merah
 #---------------------recv data henti------------------------# 
     while True:    
         wdata = waitdata(10)
@@ -116,14 +124,11 @@ def henti(i,j,fvacum,fstop,fpause):
         if wdata[0] == True:
             pause_d = wdata[1]
             fungsi = mmove.fungsi(pause_d)
-            # print("terus aja sampai modar")
             if fungsi == "PAUSE":
                 fpause = 1
                 mainset.force()    
-                # print("ini pause")       
                 break
             if fungsi == "STOP":
-                # print("keadaan : stop di tekan")
                 fstop = 1
                 mainset.force()
                 break
@@ -181,10 +186,8 @@ def feedback(kondisi):
         fbstr = 'serial:terhubung:'
         conn.sendall(fbstr.encode())
 def main():
-    # print("ini fungsi main")
     emg_fcum = 0
     stop = False
-    # print(stop)
     flag = False
     teach = False
     sisa = 0
@@ -196,10 +199,9 @@ def main():
     global fvacum1
     global floop
     global speeda
-    # print("pasti di siniiiii")
-    # print("kok gk masuk")
     keluarmain = 0
-    indicator("hijau",0)
+    indicator("kuning",0)
+    print("----------------------while di main control----------------------------")
     while not stop:
         if conn:
             wdata = waitdata(10)
@@ -215,9 +217,10 @@ def main():
                 mmove.move(data3, 1)
                 if data3.find("J") != -1:   #------------------------> indicator
                     if data3[3] == "1":
-                        indicator("kuning",0)
-                    if data3[3] == "0":
                         indicator("hijau",0)
+                    # if data3[3] == "0":
+                    #     print("hijau")
+                    #     indicator("kuning",0)
 #---------------------------HOME FUNC--------------------------#                
                 if data3 == "HOME":
                     mainset.home(True)
@@ -249,18 +252,24 @@ def main():
                         data5 = data3
                         global data5
                         flag = True
-                        # print(flag)
                     elif data4 == "0":
                         flag = False
-                        # print(flag)
                 if data3 == "Von" or data3 == "Vof":
                     data5 = data3
                     global data5
+                    if data5 == "Von":
+                        webVacuum = 1
+                        global webVacuum
+                        sendpose(1,0)
+                    elif data5 == "Vof":
+                        webVacuum = 0
+                        global webVacuum
+                        sendpose(1,0)
 #------------------------TEACHING FUNC-------------------------#
                 if data2 == "TEACH":
-                    data5 = "home"
-                    global data5
                     teach = True
+                    data5 = ""
+                    global data5
                     print(teach)
                 if teach == True:
                     fungsi = mmove.fungsi(data2)
@@ -274,7 +283,7 @@ def main():
                         fungsi = fungsi[0]
                         global speeda
                     if fungsi == "BATAL":
-                        # print("sebelum di hapus")
+                        print("sebelum di hapus")
                         deletedata()
                         teach = False
                     if fungsi == "STR":
@@ -418,16 +427,18 @@ def main():
                             flag_u = 0
                             v = ""
                             keluarMain = 0
-                            wdata = waitdata(1000)
+                            print("nambah lebih")
+                            wdata = waitdata("load#1000")
+                            sleep(0.5)
                             if wdata == "EMG":
                                 # print("emg di main")
                                 keluarMain = 1
                                 break
                             if wdata[0] == True:
                                 # print("ini delete load")
-                                deletedata()
                                 load = wdata[1]
                                 array1 = load.split("#")
+                                print(array1)
                                 p_array1 = len(array1)
                                 for i in range(p_array1):
                                     if i != p_array1 - 1:
@@ -442,8 +453,11 @@ def main():
                                         j3 = array2[7]
                                         j4 = array2[8]
                                         u = array2[9]
-
-                                        if u != "ON":
+                                        #OFF
+                                        #flag_u = 1
+                                        print(u)
+                                        sleep(1)
+                                        if u == "OFF" and flag_u== 0:
                                             v = ""
 
                                         elif u == "ON" and flag_u == 0:
@@ -456,9 +470,6 @@ def main():
                                         elif u == "OFF" and flag_u == 1:
                                             v = "Vof"
                                             flag_u = 0
-
-                                        elif u == "OFF" and flag_u == 0:
-                                            v = ""
                                         load_koordinat(float(j1),float(j2),float(j3),float(j4),float(x),float(y),float(z),float(r),v)
                                         init = 0
                                 if load.find("LDone")!= -1:
@@ -480,7 +491,10 @@ def main():
                 print("Emergency ditekan")
                 if data2 == "ERESET": #pemberhentian reset
                     mainset.start()
+                    emgInternal = 0
+                    print("menunggu home")
                     if emg_fcum == 1:
+                        print("vacum on")
                         while True:
                             wdata = waitdata(10)
                             if wdata == "EMG":
@@ -514,12 +528,11 @@ def main():
                                         emgInternal = 0
                                         break
                     elif emg_fcum == 0:
-                        print("emg_fcum")
+                        print("vacum off")
                         while True:
                             wdata = waitdata(10)
                             if wdata == "EMG":
                                 break
-                            print("menunggu home")
                             if wdata[0] == True:
                                 data2 = wdata[1]
                                 if data2 == "HOME":
@@ -751,7 +764,8 @@ def dobotPort(port,fungsi):
         jog = JOG(port = port)
         return jog
 #---------------------main looping------------------------#
-
+webVacuum = 0
+global webVacuum
 koneksi(setsocket)
 error = 0
 a = 0
@@ -776,15 +790,20 @@ while True:
             if avail_ports != False:
                 feedback("serial") #------------>>Serial
                 dobotkk = Dobot(avail_ports[0])
+                print("kk")
                 global dobotkk
                 sendpose(1,0)
                 mainset = dobotPort(avail_ports[0],1)
+                print("mainset")
                 global mainset
                 jog = dobotPort(avail_ports[0],2)
+                print("jog")
                 global jog
                 mmove = manualmove(avail_ports[0])
+                print("mmove")
                 global move
                 PTPm = PTP(avail_ports[0])
+                print("ptpm")
                 global PTPm
                 error = main()
         except ConnectionResetError:
@@ -846,3 +865,4 @@ while True:
 #1.48 6/14/2019
 #10:10 6/20/19
 #2:20 6/21/19
+#5.35 6/22/19
