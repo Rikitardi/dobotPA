@@ -67,7 +67,7 @@ class Dobot(threading.Thread):
         return response
 
     def _send_message(self, msg):
-        time.sleep(0.1)
+        time.sleep(0.08)
         # print("didalam send message")
         # if self.verbose:
         # print('pydobot: >>', msg) 
@@ -76,7 +76,7 @@ class Dobot(threading.Thread):
         except:    
             pass
     def _read_message(self):
-        time.sleep(0.1)
+        time.sleep(0.08)
         try:
             b = self.ser.read_all()
             # print("didalam read message")

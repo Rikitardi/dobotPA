@@ -112,16 +112,6 @@ if __name__ == "__main__":
         jstick = "jstick"
         panel = pinPanel()
         while True:
-            com = "a"  #input("cmd:")
-            if com == "1":
-                panel.lampu(merah,1)
-                print(merah)
-            if com == "2":
-                panel.lampu(kuning,1)
-                print(kuning)
-            if com == "3":
-                panel.lampu(hijau,1)
-                print(hijau)
             if panel.tombolEmg() == 1:
                 panel.lampu(power,1)
                 print("yes")
