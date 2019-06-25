@@ -85,10 +85,10 @@ class pinPanel():
                 pinOut(self.lampuHijau, self.H)
 
         elif cmd == "power":
-            if on == 1:
+            if on == 0:
                 pinOut(self.lampuPowerOn, self.L)
                 pinOut(self.lampuPowerOff, self.H)
-            if on == 0:
+            if on == 1:
                 pinOut(self.lampuPowerOff, self.L)
                 pinOut(self.lampuPowerOn, self.H)
 
@@ -112,7 +112,7 @@ if __name__ == "__main__":
         jstick = "jstick"
         panel = pinPanel()
         while True:
-            com = "5" #input("cmd:")
+            com = "a"  #input("cmd:")
             if com == "1":
                 panel.lampu(merah,1)
                 print(merah)

@@ -5,19 +5,21 @@ from threading import Thread
 import socket
 import select, errno,sys
 import requests
+from evdev import InputDevice, categorize, ecodes
+from multiprocessing import Value
+import multiprocessing as mp
+
 #--------Library Buatan--------#
 from Lib.riset import setport,setsocket
-print("before")
 from Lib.manual_move import manualmove
-print("after")
 from pydobot import Dobot
 from pydobot.dobot import Dobot
 from pydobot.JOG import JOG
 from pydobot.PTP import PTP
 from pin import pinPanel
+
 #from test import stick
-
-
+jsvalue = mp.Value('i', 0)
 #---------Variable Teach-----------#
 
 temp_j1 = []
@@ -31,6 +33,9 @@ temp_r = []
 urutan = []
 
 #----------Set Koneksi---------#
+
+
+
 def koneksi(setsocket):
     ip = ''
     port = 5051
@@ -58,6 +63,112 @@ fvacum1 = 0
 ftohome = 0
 floop = 0
 speeda = ""
+js_ports = glob('/dev/input/event0')
+global js_ports
+
+def pars(a):
+    if a == 0:        
+        return "J1P0 1"
+    if a == 1:
+        return "J3M1 1"
+    if a == 2:
+        return "J3P1 1"
+    if a == 3:
+        return "V 1"
+    if a == 4:
+        return "J1P1 1"
+    if a == 5:
+        return "J1M1 1"
+    if a == 6:
+        return "J2M1 1"
+    if a == 7:
+        return "J1P0 1"
+    if a == 8:
+        return "J2P1 1"
+
+def joystick():
+    v = 0
+    #cree un objet gamepad | creates object gamepad
+    #affiche la liste des device connectes | prints out device info at start
+    # print(gamepad)
+    # print("init")
+    while True:
+        v = 0
+        Btn1 = 288
+        Btn2 = 289
+        Btn3 = 290
+        Btn4 = 291
+        Btn5 = 292
+        Btn6 = 293
+        BtnL1 = 294
+        BtnR1 = 295
+        BtnL2 = 296
+        BtnR2 = 297
+        BtnL3 = 298
+        BtnR3 = 299
+        if len(js_ports[0]) != 0:
+            gamepad = InputDevice('/dev/input/event0')
+            global gamepad
+            for event in gamepad.read_loop():
+                if event.type == ecodes.EV_KEY:
+                    # print(event.value)
+                    if event.value == 1:
+                        if event.code == Btn2:
+                            perintah = 1
+                            jsvalue.value =  perintah
+                            break
+                        elif event.code == Btn3:
+                            perintah = 2
+                            jsvalue.value =  perintah
+                            break
+                        elif event.code == Btn6:
+                            perintah = 3
+                            jsvalue.value =  perintah
+                            v = 1
+                            break
+                        elif event.code == BtnL1:
+                            perintah = 4
+                            jsvalue.value =  perintah
+                            break
+                        elif event.code == BtnR1:
+                            perintah = 5
+                            jsvalue.value =  perintah
+                            break
+                        elif event.code == BtnL2:
+                            perintah = 1
+                            jsvalue.value =  perintah
+                            break
+                        elif event.code == BtnR2:
+                            perintah = 1
+                            jsvalue.value =  perintah
+                            break
+                    elif event.value == 0:
+                        perintah = 0
+                        jsvalue.value =  perintah
+                        break
+                #Gamepad analogique | Analog gamepad
+                if event.type == ecodes.EV_ABS:
+                    absevent = categorize(event)
+                    # print("langkah 1")
+                    # print(ecodes.bytype[absevent.event.type][absevent.event.code], absevent.event.value)
+                    if ecodes.bytype[absevent.event.type][absevent.event.code] == "ABS_HAT0Y":
+                        if absevent.event.value == -1:
+                            perintah = 6
+                            jsvalue.value =  perintah
+                            break
+                        elif absevent.event.value == 0:
+                            perintah = 7
+                            jsvalue.value =  perintah
+                            break
+                        elif absevent.event.value == 1:
+                            perintah = 8
+                            jsvalue.value =  perintah
+                            break
+                # print("akhir aneh")
+                # print(event)
+                # print(gamepad.read_loop())
+        else:
+            print("not found")
 
 def indicator(lampu, init):
     if lampu == "merah":
@@ -70,6 +181,10 @@ def indicator(lampu, init):
     elif lampu == "hijau":
         gpio.lampu(lampu,1)
         feedback("lampuHijau")
+    elif lampu == "power" and init == 1:
+        gpio.lampu(lampu,init)
+    elif lampu == "power" and init == 0:
+        gpio.lampu(lampu,init)
 def waitdata(panjangData):
     # print("wait data")
     try:
@@ -93,16 +208,12 @@ def waitdata(panjangData):
             mainset.force()
             return "EMG"
         return [True, data2]    
-    return [False]
-        
-
+    return [False,"#"]
 def sendpose(pvacum,syarat):
-    # print("ini sendpose")
     getpose = dobotkk.run()
     if getpose == 'ERROR 101' :
         pesan = 'ERROR 101'
         return pesan
-    print(webVacuum)
     r = requests.get('http://192.168.43.82/webPA/API_pa.php?x='+str(getpose[6])+'&y='+str(getpose[5])+'&z='+str(getpose[7])+'&r='+str(getpose[8])+'&v='+str(webVacuum))
     if syarat == 1:
         getpose1 = format('K:%s:%s:%s:%s:%s:%s:%s:%s::vc#%s::#' % (getpose[5],getpose[6],getpose[7],getpose[8],getpose[1],getpose[2],getpose[3],getpose[4],pvacum))
@@ -111,12 +222,9 @@ def sendpose(pvacum,syarat):
         getpose1 = format('K:%s:%s:%s:%s:%s:%s:%s:%s::::#' % (getpose[5],getpose[6],getpose[7],getpose[8],getpose[1],getpose[2],getpose[3],getpose[4]))
         getpose2 = getpose1.encode()
         datapose = format('DATA POSISI TERAKHIR : J1:%s, J2:%s, J3:%s, J4:%s, X1:%s, X2:%s, X3:%s, X4:%s::::#' % (getpose[1],getpose[2],getpose[3],getpose[4],getpose[5],getpose[6],getpose[7],getpose[8]))
-        print(getpose2)
-    conn.sendall(getpose2)
+        conn.sendall(getpose2)
     return getpose  
 def henti(i,j,fvacum,fstop,fpause):
-# indicator("merah",0) #--------------------------> ind Merah
-#---------------------recv data henti------------------------# 
     while True:    
         wdata = waitdata(10)
         if wdata == "EMG":
@@ -186,6 +294,12 @@ def feedback(kondisi):
         fbstr = 'serial:terhubung:'
         conn.sendall(fbstr.encode())
 def main():
+    js = 0
+    jsv = 0
+    jsr = 0
+    jsx = 0
+    jsy = 0
+    du = 0
     emg_fcum = 0
     stop = False
     flag = False
@@ -193,6 +307,7 @@ def main():
     sisa = 0
     jejak = 0
     floop = 0
+    fpars = [0,0]
     global fpause1
     global fpause2
     global fstop1
@@ -209,20 +324,74 @@ def main():
                 # print("emg di main")
                 keluarmain = 1
                 break
-            if wdata[0] == True:
+            if js == 1:
+                hasilpars = pars(jsvalue.value)
+                fpars = hasilpars.split()
+                print(len(fpars[0]))
+
+                if len(fpars[0]) > 1:
+                    if fpars[0][3] == "0":
+                        mmove.move(fpars[0], 1)
+                        du = 0
+                    else:
+                        du = 1
+                if len(fpars[0]) == 1:
+                    du = 1                    
+            if wdata[0] == True or ( js == 1 and du == 1):
+                # print("ini")
                 data2 = wdata[1]
                 # print(data2)
                 data3 = data2
 #--------------------------MANUAL FUNC-------------------------#
-                mmove.move(data3, 1)
+                if data2 == "SON":
+                    js = 1
+                elif data2 == "SOF":
+                    fpars = [0,0]
+                    js = 0
+                if fpars[1] == "1":
+                    print("hayo lh")
+                    if fpars[0].find("V") != -1 and jsv == 0:
+                        jsv = 1
+                        jsx = 1
+                        mmove.move("Von", 1)
+                    elif jsx == 1 and fpars[0] == "J1P0":
+                        jsx = 0
+                        jsr = 1
+                        print("idle 1")
+                    elif fpars[0].find("V") != -1 and jsr == 1:
+                        jsr = 0
+                        jsy = 1
+                        mmove.move("Vof", 1)
+                        print("zzzzz")
+                    elif jsy == 1 and fpars[0] == "J1P0":
+                        jsy = 0
+                        jsv = 0
+                        print("idle 2")
+                    else:
+                        print("sip")
+                        mmove.move(fpars[0], 1)
+                        if fpars[0].find("V") == -1:
+                            print("skop")
+                            if fpars[0][3] == "1":
+                                print("ahh")
+                                sendpose(1,0)
+                else:
+                    print("movements")
+                    mmove.move(data3, 1)
                 if data3.find("J") != -1:   #------------------------> indicator
                     if data3[3] == "1":
                         indicator("hijau",0)
-                    # if data3[3] == "0":
-                    #     print("hijau")
-                    #     indicator("kuning",0)
 #---------------------------HOME FUNC--------------------------#                
                 if data3 == "HOME":
+                    pose33 = sendpose(1,0)
+                    PTPm.SPEED(10,20)
+                    PTPm.MOVJ_XYZ(150, 0, 125, 0)
+                    while True:
+                        pose22 = sendpose(1,0)
+                        sleep(0.5)
+                        # print(type(pose22[7]))
+                        if str(pose22[7]) == "125.0" :
+                            break
                     mainset.home(True)
                     while True:
                         pooose1 = sendpose(1,0)
@@ -237,11 +406,13 @@ def main():
                             print(r)
                         except ValueError:
                             continue
-                        if x == 250 and y == 0 and z == 50 and r == 0: 
+                        if x == 150 and y == 0 and z == 125 and r == 0: 
                             sleep(5)
+                            print("oke")
                             break
 #--------------------------EXIT FUNC---------------------------#
                 if data3 == "EXIT":
+                    indicator("power",0)
                     print("close")
                     close
                     stop = True
@@ -456,7 +627,7 @@ def main():
                                         #OFF
                                         #flag_u = 1
                                         print(u)
-                                        sleep(1)
+                                        # sleep(1)
                                         if u == "OFF" and flag_u== 0:
                                             v = ""
 
@@ -489,10 +660,9 @@ def main():
                 data2 = wdata[1]
                 print(data2)
                 print("Emergency ditekan")
-                if data2 == "ERESET": #pemberhentian reset
+                if data2 == "ERESET" or tombolEmg == 1: #pemberhentian reset
                     mainset.start()
                     emgInternal = 0
-                    print("menunggu home")
                     if emg_fcum == 1:
                         print("vacum on")
                         while True:
@@ -771,8 +941,12 @@ error = 0
 a = 0
 error = ""
 
+js = mp.Process(target = joystick)
+js.start()
+
 while True:
     if error == "":
+        indicator("power",0)
         indicator("merah",1)
         print ("menunggu koneksi")
         conn, client_address = sock.accept()
@@ -805,7 +979,10 @@ while True:
                 PTPm = PTP(avail_ports[0])
                 print("ptpm")
                 global PTPm
-                error = main()
+                while True:
+                    indicator("power",1)
+                    error = main()
+
         except ConnectionResetError:
             print("keluar2")
             error = ""

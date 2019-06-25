@@ -33,7 +33,7 @@ class Dobot(threading.Thread):
         is_open = self.ser.isOpen()
         # print(is_open)
         print('pydobot: %s open' % self.ser.name if is_open else 'failed to open serial port')
-        self._set_home_params(x=250, y=0, z=50, r=0)
+        self._set_home_params(x=150, y=0, z=125, r=0)
         self.start()
 
     def run(self):
