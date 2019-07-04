@@ -7,12 +7,12 @@ import select, errno,sys
 
 #--------Library Buatan--------#
 sys.path.append('../')
-from Lib.riset import setport
 from pydobot.dobot import Dobot
 from pydobot.JOG import JOG
+from pin import pinPanel
 
-setport = setport()
-mainset = setport.mainset()
+gpio = pinPanel()
+global gpio
 
 class manualmove():
     def __init__(self, available_ports):
@@ -24,10 +24,6 @@ class manualmove():
     def fungsi(self, fungsi1, aktive = 1):        
         self.fungsi1 = fungsi1
         self.aktive = aktive
-        if self.fungsi1.find("REMOVE") != -1:
-            self.remove = self.fungsi1.split()
-            return self.remove
-            print(self.fungsi1)
         if self.fungsi1 == "TEACH" :
             return "TEACH"
             print(self.fungsi1)
@@ -44,7 +40,11 @@ class manualmove():
             return "PAUSE"
             self.JogFunc.idle()            
             print(self.fungsi1)
-        if self.fungsi1.find("START") != -1:
+        if self.fungsi1.find("REMOVE") != -1:
+            self.remove = self.fungsi1.split()
+            return self.remove
+            print(self.fungsi1)
+        if self.fungsi1.find("STR") != -1:
             self.start = self.fungsi1.split()
             return self.start
             print(self.fungsi1)
@@ -60,7 +60,7 @@ class manualmove():
         if self.fungsi1 == "B_SPEED" :
             return "SPEED"
             print(self.fungsi1)
-        if self.fungsi1 == "S_EMG" :
+        if self.fungsi1 == "EMG" :
             return "EMG"
             print(self.fungsi1)
         if self.fungsi1 == "S_RESET" :
@@ -78,56 +78,59 @@ class manualmove():
     def move(self, data2, aktive):
         self.data2 = data2
         self.aktive = aktive
+        # print(self.data2)
         if self.data2.find("SPEEDM") != -1:
             self.speed = self.data2.split()
             self.velo = self.speed[1]
             self.JogFunc.jspeed(float(self.velo),50)
         if self.data2 == "J1P1" :
-            if self.aktive == 1:
-                print(data2)
+            # if self.aktive == 1:
+            #     print(self.data2)
             self.JogFunc.joint1pos()
         elif self.data2 == "J1M1":
-            if self.aktive == 1:
-                print(data2)
+            # if self.aktive == 1:
+            #     print(self.data2)
             self.JogFunc.joint1min()
         elif self.data2 == "J2P1":
-            if self.aktive == 1:
-                print(data2)
+            # if self.aktive == 1:
+            #     print(self.data2)
             self.JogFunc.joint2pos()            
         elif self.data2 == "J2M1":
-            if self.aktive == 1:
-                print(data2)
+            # if self.aktive == 1:
+            #     print(self.data2)
             self.JogFunc.joint2min()
         elif self.data2 == "J3P1":
-            if self.aktive == 1:
-                print(data2)
+            # if self.aktive == 1:
+            #     print(self.data2)
             self.JogFunc.joint3pos()
         elif self.data2 == "J3M1":
-            if self.aktive == 1:
-                print(data2)
+            # if self.aktive == 1:
+            #     print(self.data2)
             self.JogFunc.joint3min()
         elif self.data2 == "J4P1":
-            if self.aktive == 1:
-                print(data2)
+            # if self.aktive == 1:
+            #     print(self.data2)
             self.JogFunc.joint4pos()
         elif self.data2 == "J4M1":
-            if self.aktive == 1:
-                print(data2)
+            # if self.aktive == 1:
+            #     print(self.data2)
             self.JogFunc.joint4min()
         elif self.data2 == "J1P0" or self.data2 == "J1M0" or self.data2 == "J2P0" or self.data2 == "J2M0" or self.data2 == "J3P0" or self.data2 == "J3M0" or self.data2 == "J4P0" or self.data2 == "J4M0":
-            if self.aktive == 1:
-                print(data2)
+            # if self.aktive == 1:
+            #     print(self.data2)
+            gpio.lampu("kuning",1)
             self.JogFunc.jspeed(2,1)
             self.JogFunc.idle()
             self.JogFunc.jspeed(float(self.velo),50)
         elif self.data2 == "Von":
-            if self.aktive == 1:
-                print(data2)
+            # if self.aktive == 1:
+            #     print(self.data2)
             self.Vac.suck(True)
         elif self.data2 == "Vof":
-            if self.aktive == 1:
-                print(data2)
+            # if self.aktive == 1:
+            #     print(self.data2)
             self.Vac.suck(False)
+           
 
 if __name__ == "__main__":
     setport = setport()
